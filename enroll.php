@@ -7,63 +7,52 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$success = "";
-$error = "";
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id = $_SESSION['user_id'];
+$msg = '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $course_id = $_POST['course_id'];
+    $user_id = $_SESSION['user_id'];
 
-    // Check if already enrolled
     $check = mysqli_query($conn, "SELECT * FROM enrollments WHERE user_id=$user_id AND course_id=$course_id");
-    if (mysqli_num_rows($check) > 0) {
-        $error = "You are already enrolled in this course.";
+    if (mysqli_num_rows($check) == 0) {
+        mysqli_query($conn, "INSERT INTO enrollments (user_id, course_id, completion_status) VALUES ($user_id, $course_id, 'in_progress')");
+        $msg = "Enrolled successfully!";
     } else {
-        $date = date('Y-m-d');
-        $sql = "INSERT INTO enrollments (user_id, course_id, enrolled_date, completion_status)
-                VALUES ($user_id, $course_id, '$date', 'in_progress')";
-        if (mysqli_query($conn, $sql)) {
-            $success = "Enrolled successfully!";
-        } else {
-            $error = "Error: " . mysqli_error($conn);
-        }
+        $msg = "You are already enrolled in this course.";
     }
 }
 
-// Fetch available courses
 $courses = mysqli_query($conn, "SELECT * FROM courses");
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <title>Enroll in Course</title>
     <link rel="stylesheet" href="style.css">
-
-    <title>Enroll in a Course</title>
 </head>
 <body>
-<h2>Enroll in a Course</h2>
+<div class="header">
+    <img src="images/logo_esprit_training.png" class="logo" alt="Logo">
+    <h1 class="slogan">
+    <span class="black">Train. Track.</span>
+    <span class="red"> Transform.</span>
+</h1>
+</div>
 
-<?php if ($success): ?>
-    <p style="color:green;"><?= $success ?></p>
-<?php endif; ?>
-<?php if ($error): ?>
-    <p style="color:red;"><?= $error ?></p>
-<?php endif; ?>
-
-<form method="post" action="">
-    <label>Select Course:</label>
-    <select name="course_id" required>
-        <option value="">-- Choose a course --</option>
-        <?php while ($row = mysqli_fetch_assoc($courses)): ?>
-            <option value="<?= $row['course_id'] ?>"><?= htmlspecialchars($row['title']) ?></option>
-        <?php endwhile; ?>
-    </select>
-    <br><br>
-    <input type="submit" value="Enroll">
-</form>
-
-<p><a href="dashboard.php">Back to Dashboard</a></p>
+<div class="container">
+    <h2>Enroll in a Course</h2>
+    <?php if ($msg) echo "<p style='color:green;'>$msg</p>"; ?>
+    <form method="post">
+        <select name="course_id" required>
+            <option value="">Select a Course</option>
+            <?php while ($row = mysqli_fetch_assoc($courses)): ?>
+                <option value="<?= $row['course_id'] ?>"><?= htmlspecialchars($row['title']) ?></option>
+            <?php endwhile; ?>
+        </select>
+        <input type="submit" value="Enroll">
+    </form>
+    <p><a href="dashboard.php">Back to Dashboard</a></p>
+</div>
 </body>
 </html>

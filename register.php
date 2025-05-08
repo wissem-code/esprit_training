@@ -1,37 +1,19 @@
 <?php
-session_start();
 require 'db.php';
 
-$errors = [];
+$msg = '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $name = mysqli_real_escape_string($conn, $_POST['name']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $role = $_POST['role'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $firstname = trim($_POST['firstname']);
-    $lastname = trim($_POST['lastname']);
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-
-    if (empty($firstname) || !ctype_alpha($firstname)) {
-        $errors[] = "First name is required and must be letters only.";
-    }
-    if (empty($lastname) || !ctype_alpha($lastname)) {
-        $errors[] = "Last name is required and must be letters only.";
-    }
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "A valid email is required.";
-    }
-    if (empty($password) || strlen($password) < 4) {
-        $errors[] = "Password must be at least 4 characters.";
-    }
-
-    if (empty($errors)) {
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $fullName = $firstname . ' ' . $lastname;
-
-        $stmt = mysqli_prepare($conn, "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'student')");
-        mysqli_stmt_bind_param($stmt, "sss", $fullName, $email, $hashed);
-        mysqli_stmt_execute($stmt);
-        echo "<p>Registration successful. <a href='login.php'>Login</a></p>";
+    $query = "INSERT INTO users (name, email, password, role) VALUES ('$name', '$email', '$password', '$role')";
+    if (mysqli_query($conn, $query)) {
+        header("Location: login.php");
         exit;
+    } else {
+        $msg = "Registration failed.";
     }
 }
 ?>
@@ -39,27 +21,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="style.css">
-
+    <meta charset="UTF-8">
     <title>Register</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h2>Register</h2>
+<div class="header">
+    <img src="images/logo_esprit_training.png" class="logo" alt="Logo">
+    <h1 class="slogan">
+    <span class="black">Train. Track.</span>
+    <span class="red"> Transform.</span>
+</h1>
+</div>
 
-<?php if (!empty($errors)): ?>
-    <ul style="color:red;">
-        <?php foreach ($errors as $e): ?>
-            <li><?= $e ?></li>
-        <?php endforeach; ?>
-    </ul>
-<?php endif; ?>
-
-<form method="post" action="">
-    First Name: <input type="text" name="firstname"><br><br>
-    Last Name: <input type="text" name="lastname"><br><br>
-    Email: <input type="email" name="email"><br><br>
-    Password: <input type="password" name="password"><br><br>
-    <input type="submit" value="Register">
-</form>
+<div class="container">
+    <h2>Register</h2>
+    <?php if ($msg) echo "<p style='color:red;'>$msg</p>"; ?>
+    <form method="post">
+        <input type="text" name="name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <select name="role" required>
+            <option value="">Select Role</option>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+        </select>
+        <input type="submit" value="Register">
+    </form>
+    <p><a href="login.php">Already have an account? Log in</a></p>
+</div>
 </body>
 </html>

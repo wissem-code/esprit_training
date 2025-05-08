@@ -2,31 +2,22 @@
 session_start();
 require 'db.php';
 
-$errors = [];
+$msg = '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    
+    $res = mysqli_query($conn, "SELECT * FROM users WHERE email = '$email'");
+    $user = mysqli_fetch_assoc($res);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-
-    if (empty($email) || empty($password)) {
-        $errors[] = "Both fields are required.";
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['name'] = $user['name'];
+        $_SESSION['role'] = $user['role'];
+        header("Location: dashboard.php");
+        exit;
     } else {
-        $sql = "SELECT * FROM users WHERE email = ?";
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "s", $email);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $user = mysqli_fetch_assoc($result);
-
-        if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['name'] = $user['name'];
-            $_SESSION['role'] = $user['role'];
-            header("Location: dashboard.php");
-            exit;
-        } else {
-            $errors[] = "Invalid email or password.";
-        }
+        $msg = "Invalid credentials.";
     }
 }
 ?>
@@ -34,25 +25,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="style.css">
-
+    <meta charset="UTF-8">
     <title>Login</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h2>Login</h2>
+<div class="header">
+    <img src="images/logo_esprit_training.png" class="logo" alt="Logo">
+    <h1 class="slogan">
+    <span class="black">Train. Track.</span>
+    <span class="red"> Transform.</span>
+</h1>
+</div>
 
-<?php if (!empty($errors)): ?>
-    <ul style="color:red;">
-        <?php foreach ($errors as $e): ?>
-            <li><?= $e ?></li>
-        <?php endforeach; ?>
-    </ul>
-<?php endif; ?>
-
-<form method="post" action="">
-    Email: <input type="email" name="email"><br><br>
-    Password: <input type="password" name="password"><br><br>
-    <input type="submit" value="Login">
-</form>
+<div class="container">
+    <h2>Login</h2>
+    <?php if ($msg) echo "<p style='color:red;'>$msg</p>"; ?>
+    <form method="post">
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="submit" value="Login">
+    </form>
+    <p><a href="register.php">Don't have an account? Register</a></p>
+</div>
 </body>
 </html>
